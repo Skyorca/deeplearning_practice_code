@@ -1,0 +1,47 @@
+1. mse loss:
+
+mse=tf.reduce_mean(tf.square(y-yhat))
+tf.select(tf.greater(y,yhat),y-yhat,yhat-y)
+tf.greater()的输入是两个张量，比较两个张量中的每一个元素，并返回比较结果（true或false的向量）。tf.select()有三个参数，第一个参数条件为真时选择第二个参数中的值，否则选择第三个参数的值。
+
+2. learning rate:
+
+global_step=tf.Variable(0, trainable=False)
+#使用exponential_decay生成学习速率，因为staircase=tire，每100次迭代，学习率×0.96
+learning_rate=tf.train.exponential_decay(0.1,global_step,100,0.96,staircase=True)
+#在minimize中导入global_step将自动更新(after updating variables, this ++1)
+#learning_step=tf.train.GtadientDescentOptimizer(learning_rate).minimize(loss_function,global_step=global_step)
+decayed_learning_rate = learning_rate * decay_rate ^ (global_step / decay_steps) 
+so after decay_step's number of iter, learning_rate-->decay_rate*learning_rate
+
+3.regularization
+tf.contrib.layers.l2_regularizer(lambda)(w)
+tf.contrib.layers.l1_regularizer(lambda)(w)
+
+4.
+what is tf.collection?
+
+5.Moving Average Model:
+ !!!maintain a shadow var for each var, and when predicting use shadow instead of real one
+#
+var: all trainable vars
+decay_rate: usually close to 1
+global_step: how many times updated, an optional arg
+
+# 
+!!!create a moving-average model
+global_step = tf.Variable(0, trainable=False)
+variable_averages = tf.train.ExponentialMovingAverage(MOVING_AVERAGE_DECAY, global_step) # define a moving-average obj, has apply() and average() method
+variables_averages_op = variable_averages.apply(tf.trainable_variables())
+DECAY--RULE:     decay_rate = min{MOVING_AVERAGE_DECAY, (1+global_step)/(10+global_step)}
+UPGRADE--RULE:   shadow = decay*shadow+(1-decay)*var
+
+#
+at forward_prop:
+  use variable_averages.average(param, W1 for example) instead of using simply param
+#
+at back-prop:
+  with tf.control_dependencies([train_step, variables_averages_op]):
+        train_op = tf.no_op(name='train')    # nothing ,just to combine train_step and variables_averages_op together as sequence
+
+[any operations defined withini the with context are executed after[a, b, c, ...]]
